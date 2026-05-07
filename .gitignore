@@ -1,0 +1,9 @@
+#  carpetas temporales
+__pycache__/
+
+#entorno virtual
+env/
+
+# pdfs
+
+*.pdf

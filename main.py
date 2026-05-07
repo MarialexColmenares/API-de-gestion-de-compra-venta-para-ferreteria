@@ -6,7 +6,7 @@ from routers.categoria_router import router as categoria_router
 from routers.marcas_router import router as marca_router
 from routers.almacen_router import router as almacen_router
 from routers.productos_router import router as productos_router
-from routers.proveedores import router as proveedores_router
+from routers.proveedores_router import router as proveedores_router
 from routers.clientes_router import router as clientes_router
 from routers.ventas_routers import router as ventas_router
 from routers.compras_router import router as compras_router

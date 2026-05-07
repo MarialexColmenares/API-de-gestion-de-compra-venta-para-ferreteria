@@ -1,6 +1,6 @@
 from sqlmodel import SQLModel, create_engine, Session
 
-DATABASE_URL = "postgresql+psycopg://postgres:31890@localhost:5432/ferreteria"
+DATABASE_URL = "postgresql+psycopg://postgres:root@localhost:5432/ferreteria"
 engine = create_engine(DATABASE_URL, echo=True) 
 
 def create_db_and_tables():

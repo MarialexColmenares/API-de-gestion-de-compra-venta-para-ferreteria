@@ -1,32 +1,24 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from database.conexion import engine, get_session
-from sqlmodel import Session, select
+from database.conexion import get_session
+from sqlmodel import Session
 from models.modelos import Categoria
 from schemas.esquemas import CategoriaCreate, CategoriaRead, ProductoRead, CategoriaUpdate
 from typing import List
-from sqlalchemy import func
+
+from services.categoria_services import * 
 
 # prefix y tags para organizar las rutas de categoría en la documentación de FastAPI
 router = APIRouter(prefix="/categorias", tags=["Categorías"])
 
 #  crea una categoria nueva
 @router.post("/", response_model=CategoriaRead)
-def crear_categoria(data: CategoriaCreate,session: Session = Depends(get_session)):
+def crear_categoria(data: CategoriaCreate, session: Session = Depends(get_session)):
     
-    statement = select(Categoria).where(Categoria.nombre == data.nombre)
-    existe = session.exec(statement).first()
+    nueva_categoria = crear_categoria_service(data, session)
     
-    if existe:
+    # avaluamos si la funcion retorno None
+    if nueva_categoria == None:
         raise HTTPException(status_code=409, detail="Ya existe una categoría con este nombre")
-    
-    nueva_categoria = Categoria(
-        nombre=data.nombre,
-        estado=data.estado,
-        descripcion=data.descripcion)
-    
-    session.add(nueva_categoria)
-    session.commit()
-    session.refresh(nueva_categoria)
 
     return nueva_categoria
 
@@ -34,8 +26,10 @@ def crear_categoria(data: CategoriaCreate,session: Session = Depends(get_session
 @router.get("/", response_model=List[CategoriaRead])
 def obtener_categorias(session: Session = Depends(get_session)):
     
-    categorias = session.exec(select(Categoria)).all()
+    # llamamos a la funcion para obtener todas las categorias
+    categorias = obtener_categorias_service(session)
     
+    # evaluamos si no devolvio una lista de categorias
     if not categorias:
         raise HTTPException(
             status_code=404,
@@ -47,16 +41,21 @@ def obtener_categorias(session: Session = Depends(get_session)):
 @router.get("/activas", response_model=List[CategoriaRead])
 def categorias_activas(session: Session = Depends(get_session)):
     
-    statement = select(Categoria).where(Categoria.estado == True)
-    categorias = session.exec(statement).all()
+    categorias = categorias_activas_service(session)
+    
+    # evaluamos si se encontraron categorias activas
+    if not categorias:
+        raise HTTPException(status_code=404, detail="No se encontraron categorias activas")
     
     return categorias
 
 # obtenemos una categoria por su id
 @router.get("/{categoria_id}", response_model=CategoriaRead)
 def obtener_categoria(categoria_id: int, session: Session = Depends(get_session)):
-    categoria = session.get(Categoria, categoria_id)
     
+    categoria = obtener_categoria_service(categoria_id, session)
+    
+    # evaluamos si la funcion no retorno una categoria
     if not categoria:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, 
@@ -68,70 +67,57 @@ def obtener_categoria(categoria_id: int, session: Session = Depends(get_session)
 @router.delete("/{categoria_id}")
 def desactivar_categoria(categoria_id: int, session: Session = Depends(get_session)):
     
-    categoria = session.get(Categoria, categoria_id)
+    categoria = desactivar_categoria_service(categoria_id, session)
     
-    if not categoria:
-        raise HTTPException(
-            status_code= status.HTTP_404_NOT_FOUND, 
-            detail="Categoría no encontrada"
-        )
+    #  evaluamos si la funcion retorna None y lanzamos error 
+    if categoria == None:
+        raise HTTPException(status_code= 404,  detail="Categoría no encontrada")
     
-    categoria.estado = False
-    
-    session.commit()
-    session.refresh(categoria)
+    # se retorna nensaje de confirmacion de eliminacion logica
     return {"message": f"Categoría con ID {categoria_id} ha sido desactivada (estado cambiado a False)"}
 
 #  reactivar categoria
 @router.patch("/{categoria_id}/activar")
 def activar_categoria(categoria_id: int, session: Session = Depends(get_session)):
-    categoria = session.get(Categoria, categoria_id)
-    if not categoria:
+    
+    categoria = activar_categoria_service(categoria_id, session)
+    
+    if categoria == None:
         raise HTTPException(status_code=404, detail="Categoría no encontrada")
     
-    categoria.estado = True
-    
-    session.add(categoria)
-    session.commit()
     return {"message": f"Categoría '{categoria.nombre}' activada nuevamente"}
 
 # actualizacion parcial
 @router.patch("/{categoria_id}", response_model=CategoriaRead)
 def editar_categoria(categoria_id: int, data: CategoriaUpdate, session: Session = Depends(get_session)):
     
-    categoria_db = session.get(Categoria, categoria_id)
+    categoria = editar_categoria_service(categoria_id, data, session)
     
-    if not categoria_db:
+    if categoria == None:
         raise HTTPException(
             status_code=404, 
             detail=f"Categoría con ID {categoria_id} no encontrada")
-        
-    if data.nombre is not None:
-        categoria_db.nombre = data.nombre
-    if data.descripcion is not None:
-        categoria_db.descripcion = data.descripcion
 
-    session.add(categoria_db)
-    session.commit()
-    session.refresh(categoria_db)
-    
-    return categoria_db
+    return categoria
 
 # productos por categoria 
 @router.get("/{nombre_categoria}/productos", response_model=List[ProductoRead])
-def buscar_productos_por_categoria(nombre_categoria: str, session: Session = Depends(get_session)):
-    # Convertimos el nombre en la BD y el parámetro de búsqueda a minúsculas
-    statement = select(Categoria).where(func.lower(Categoria.nombre) == nombre_categoria.lower())
-    categoria = session.exec(statement).first()
+def buscar_productos_por_categoria(categoria_id: int, session: Session = Depends(get_session)):
     
+    # usamos la funcion de obtener categoria para obtener la categoria atraves de su id 
+    categoria = obtener_categoria_service(categoria_id, session)
+
+    # evaluamos si no retorno una categoria
     if not categoria:
         raise HTTPException(
             status_code=404,
-            detail=f"No se encontró la categoría: {nombre_categoria}"
+            detail=f"No se encontró la categoría con id: {categoria_id}"
         )
-    productos = categoria.productos
+        
+    # usamos la funcion buscar productos para apartir de la categoria ya seleccionada retorne suss productos
+    productos = buscar_productos_por_categoria_service(categoria)
     
-    # Validación B: ¿La categoría existe pero no tiene productos registrados?
+    # evaluamos si no retorno productos 
     if not productos or len(productos) == 0:
         raise HTTPException(
             status_code=404, 

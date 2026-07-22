@@ -11,7 +11,10 @@ from routers.clientes_router import router as clientes_router
 from routers.ventas_routers import router as ventas_router
 from routers.compras_router import router as compras_router
 
-app = FastAPI()
+app = FastAPI(
+    title="Centro de Repuestos y Ferretería",
+    version="1.5.0"
+)
 
 @app.get("/")
 async def root():

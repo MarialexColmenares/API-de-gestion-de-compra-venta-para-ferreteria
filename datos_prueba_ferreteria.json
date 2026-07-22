@@ -1,0 +1,182 @@
+{
+    "categorias": [
+        {
+            "nombre": "Herramientas Eléctricas",
+            "descripcion": "Taladros, amoladoras, sierras",
+            "estado": true
+        },
+        {
+            "nombre": "Construcción",
+            "descripcion": "Cemento, arena, bloques",
+            "estado": true
+        },
+        {
+            "nombre": "Plomería",
+            "descripcion": "Tubos, llaves, pegamentos",
+            "estado": true
+        }
+    ],
+    "marcas": [
+        {
+            "nombre": "Dewalt",
+            "estado": true
+        },
+        {
+            "nombre": "Stanley",
+            "estado": true
+        },
+        {
+            "nombre": "Truper",
+            "estado": true
+        }
+    ],
+    "almacenes": [
+        {
+            "nombre": "Almacén Central",
+            "ubicacion": "Zona Norte, Pasillo 1",
+            "estado": true
+        },
+        {
+            "nombre": "Bodega B",
+            "ubicacion": "Sótano 1",
+            "estado": true
+        }
+    ],
+    "productos": [
+        {
+            "codigo": "TAL-001",
+            "nombre": "Taladro Percutor 1/2",
+            "descripcion": "Taladro profesional 20V Dewalt",
+            "precio": 85.5,
+            "costo": 60.0,
+            "unidad": "Unidades",
+            "categoria_id": 1,
+            "marca_id": 1
+        },
+        {
+            "codigo": "CEM-001",
+            "nombre": "Cemento Gris 42kg",
+            "descripcion": "Saco de cemento Portland",
+            "precio": 12.0,
+            "costo": 8.5,
+            "unidad": "Kilos",
+            "categoria_id": 2,
+            "marca_id": 3
+        }
+    ],
+    "clientes": [
+        {
+            "nombre": "Juan",
+            "apellido": "Pérez",
+            "cedula": "V-12345678",
+            "telefono": "0412-1112233",
+            "correo": "juan.perez@gmail.com",
+            "direccion": "Av. Principal Nro 5"
+        },
+        {
+            "nombre": "María",
+            "apellido": "Rodríguez",
+            "cedula": "V-87654321",
+            "telefono": "0424-9998877",
+            "correo": "m.rodriguez@outlook.com",
+            "direccion": "Calle Los Álamos Edf 3"
+        }
+    ],
+    "proveedores": [
+        {
+            "nombre_empresa": "Distribuidora Ferretera C.A.",
+            "contacto": "Carlos Mendoza",
+            "telefono": "0212-5554433",
+            "correo": "ventas@distferre.com",
+            "direccion": "Zona Industrial Este"
+        }
+    ],
+    "stock_inicial_almacen": [
+        {
+            "producto_id": 1,
+            "almacen_id": 1,
+            "cantidad": 10
+        },
+        {
+            "producto_id": 2,
+            "almacen_id": 1,
+            "cantidad": 50
+        },
+        {
+            "producto_id": 1,
+            "almacen_id": 2,
+            "cantidad": 5
+        }
+    ],
+    "compras": [
+        {
+            "proveedor_id": 1,
+            "almacen_id": 1,
+            "monto_total": 945.00,
+            "fecha": "2026-05-05T08:00:00",
+            "estado": "Recibido",
+            "detalles": [
+            {
+                "producto_id": 1,
+                "cantidad": 10,
+                "precio_compra": 85.00
+            },
+            {
+                "producto_id": 2,
+                "cantidad": 10,
+                "precio_compra": 9.50
+            }
+            ]
+        },
+        {
+            "proveedor_id": 4,
+            "almacen_id": 1,
+            "monto_total": 720.00,
+            "fecha": "2026-05-05T11:00:00",
+            "estado": "Recibido",
+            "detalles": [
+            {
+                "producto_id": 6,
+                "cantidad": 100,
+                "precio_compra": 7.20
+            }
+            ]
+        }
+    ],
+    "ventas":[
+        {
+            "cliente_id": 1,
+            "fecha": "2026-05-06T09:15:00",
+            "total": 113.50,
+            "tipo_pago": "Pago Móvil",
+            "detalles": [
+            {
+                "producto_id": 1,
+                "cantidad": 1,
+                "precio_unitario": 110.00
+            },
+            {
+                "producto_id": 7,
+                "cantidad": 1,
+                "precio_unitario": 3.50
+            }
+            ]
+        },
+        {
+            "cliente_id": 4,
+            "fecha": "2026-05-06T13:20:00",
+            "total": 95.00,
+            "tipo_pago": "Zelle",
+            "detalles": [
+            {
+                "producto_id": 6,
+                "cantidad": 10,
+                "precio_unitario": 9.50
+            }
+            ]
+        }
+    ]
+}
+
+
+

@@ -6,87 +6,23 @@ from schemas.esquemas import VentaCreate, VentaRead
 from typing import List
 from datetime import date 
 from sqlalchemy import func
+from services.ventas_services import *
 
 router = APIRouter(prefix="/ventas", tags=["Ventas"])
 
 # crear venta con validación de cliente y stock 
 @router.post("/", response_model=VentaRead, status_code=status.HTTP_201_CREATED)
 def crear_venta(data: VentaCreate, session: Session = Depends(get_session)):
-    cliente = session.get(Cliente, data.cliente_id)
-    if not cliente:
-        raise HTTPException(status_code=404, detail="Cliente no encontrado")
-
-    # 1. Verificar stock global primero
-    # (Evitamos cálculos si de entrada no hay suficiente en total)
-    for item in data.detalles:
-        prod = session.get(Producto, item.producto_id)
-        if not prod or prod.stock_total < item.cantidad:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Stock global insuficiente para: {prod.nombre if prod else 'ID ' + str(item.producto_id)}"
-            )
-
-    nueva_venta = Venta(
-        cliente_id=data.cliente_id,
-        fecha=data.fecha,
-        total=data.total,
-        tipo_pago=data.tipo_pago
-    )
-    
-    detalles_db = []
-
-    for item in data.detalles:
-        producto = session.get(Producto, item.producto_id)
-        cantidad_por_descontar = item.cantidad
-
-        # 2. BUSQUEDA AUTOMÁTICA EN ALMACENES
-        # Traemos los almacenes que tienen el producto, ordenados por cantidad descendente
-        statement = select(ProductoAlmacen).where(
-            ProductoAlmacen.producto_id == item.producto_id,
-            ProductoAlmacen.cantidad > 0
-        ).order_by(ProductoAlmacen.cantidad.desc())
-        
-        existencias_almacen = session.exec(statement).all()
-
-        for stock_reg in existencias_almacen:
-            if cantidad_por_descontar <= 0:
-                break
-            
-            # Determinamos cuánto podemos sacar de este almacén
-            cantidad_a_sacar = min(stock_reg.cantidad, cantidad_por_descontar)
-            
-            # Restamos de la tabla intermedia (ProductoAlmacen)
-            stock_reg.cantidad -= cantidad_a_sacar
-            cantidad_por_descontar -= cantidad_a_sacar
-            
-            session.add(stock_reg)
-
-        # 3. Restar del stock global en la tabla Producto
-        producto.stock_total -= item.cantidad
-        session.add(producto)
-
-        # 4. Crear el detalle de la venta
-        nuevo_detalle = DetalleVenta(
-            venta=nueva_venta,
-            producto_id=item.producto_id,
-            cantidad=item.cantidad,
-            precio_unitario=item.precio_unitario,
-            subtotal=item.cantidad * item.precio_unitario
-        )
-        detalles_db.append(nuevo_detalle)
-
-    nueva_venta.detalles = detalles_db
-    session.add(nueva_venta)
-    session.commit()
-    session.refresh(nueva_venta)
-    
-    return nueva_venta
+    resultado = crear_venta_service(data, session)
+    if isinstance(resultado, dict):
+        raise HTTPException(status_code=400, detail=resultado["error"])
+    return resultado
 
 # obtener todas las ventas
 @router.get("/", response_model=List[VentaRead])
 def listar_ventas(session: Session = Depends(get_session)):
     
-    ventas = session.exec(select(Venta)).all()
+    ventas = obtener_ventas_service(session)
     
     return ventas
 
@@ -94,7 +30,7 @@ def listar_ventas(session: Session = Depends(get_session)):
 @router.get("/ventas/{venta_id}")
 def obtener_factura(venta_id: int, session: Session = Depends(get_session)):
     # 1. Buscamos la venta
-    venta = session.get(Venta, venta_id)
+    venta = obtener_venta_service(venta_id, session)
     
     if not venta:
         raise HTTPException(status_code=404, detail="Venta no encontrada")
@@ -122,19 +58,11 @@ def obtener_factura(venta_id: int, session: Session = Depends(get_session)):
 # actulizacion parcial
 @router.patch("/{venta_id}", response_model=VentaRead)
 def actualizar_venta(venta_id: int, data: VentaCreate, session: Session = Depends(get_session)):
-    venta = session.get(Venta, venta_id)
-    
+    venta = actualizar_venta_service(venta_id, data, session)
     if not venta:
         raise HTTPException(status_code=404, detail="Venta no encontrada")
-    
-    venta.fecha = data.fecha
-    venta.total = data.total
-    venta.tipo_pago = data.tipo_pago
-    
-    session.commit()
-    session.refresh(venta)
-    
     return venta
+ 
 
 @router.get("/cliente/{cliente_id}", response_model=List[VentaRead])
 def obtener_ventas_por_cliente(cliente_id: int, session: Session = Depends(get_session)):
@@ -177,6 +105,11 @@ def obtener_ventas_por_rango_fechas(
 
 @router.patch("/{venta_id}/cancelar")
 def cancelar_venta(venta_id: int, session: Session = Depends(get_session)):
+    venta = cancelar_venta_service(venta_id, session)
+    if not venta:
+        raise HTTPException(status_code=400, detail="Venta no cancelable")
+    return {"message": "Venta cancelada, stock devuelto"}
+    """
     
     venta = session.get(Venta, venta_id)
     
@@ -190,6 +123,7 @@ def cancelar_venta(venta_id: int, session: Session = Depends(get_session)):
     venta.estado = "Cancelada"
     session.commit()
     return {"message": "Venta cancelada, stock devuelto"}
+    """
 
 
 @router.get("/reporte/diario")

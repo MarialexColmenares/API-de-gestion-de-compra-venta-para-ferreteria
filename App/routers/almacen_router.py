@@ -5,9 +5,7 @@ from typing import List
 
 from schemas.esquemas import AlmacenCreate, AlmacenRead, AlmacenUpdate, ProductoRead, AsignarProductoAlmacen
 from database.conexion import get_session
-
-
-from services.almacen_service import *
+from services.almacen_services import *
 
 router = APIRouter(prefix="/almacenes", tags=["Almacenes"])
 

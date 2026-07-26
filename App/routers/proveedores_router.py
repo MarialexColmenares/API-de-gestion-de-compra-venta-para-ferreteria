@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from database.conexion import get_session
-from sqlmodel import Session, select
-from models.modelos import Proveedor
+from sqlmodel import Session
 from schemas.esquemas import ProveedorCreate, ProveedorRead, ProveedorUpdate, CompraRead
 from typing import List
+from services.proveedores_services import *
 
 router = APIRouter(prefix="/proveedores", tags=["Proveedores"])
 
@@ -11,19 +11,9 @@ router = APIRouter(prefix="/proveedores", tags=["Proveedores"])
 @router.post("/", response_model=ProveedorRead)
 def crear_proveedor(data: ProveedorCreate, session: Session = Depends(get_session)):
     
-    if session.exec(select(Proveedor).where(Proveedor.correo == data.correo)).first():
+    nuevo_proveedor = crear_proveedor_service(data, session)
+    if not nuevo_proveedor:
         raise HTTPException(status_code=409, detail="Correo ya registrado")
-    
-    nuevo_proveedor = Proveedor(
-        nombre_empresa=data.nombre_empresa,
-        contacto=data.contacto,
-        telefono=data.telefono,
-        correo=data.correo,
-        direccion=data.direccion)
-    
-    session.add(nuevo_proveedor)
-    session.commit()
-    session.refresh(nuevo_proveedor)
     
     return nuevo_proveedor
 
@@ -31,8 +21,7 @@ def crear_proveedor(data: ProveedorCreate, session: Session = Depends(get_sessio
 @router.get("/activos", response_model=List[ProveedorRead])
 def proveedores_activos(session: Session = Depends(get_session)):
     
-    statement = select(Proveedor).where(Proveedor.estado == True)
-    proveedores = session.exec(statement).all()
+    proveedores = proveedores_activos_service(session)
     
     if not proveedores:
         raise HTTPException(
@@ -45,8 +34,7 @@ def proveedores_activos(session: Session = Depends(get_session)):
 @router.get("/", response_model=List[ProveedorRead])
 def listar_proveedores(session: Session = Depends(get_session)):
     
-    statement = select(Proveedor)
-    proveedores = session.exec(statement).all()
+    proveedores = obtener_proveedores_service(session)
     
     if not proveedores:
         raise HTTPException(status_code=404, detail=f"Aun no hay registros de proveedores")
@@ -57,7 +45,7 @@ def listar_proveedores(session: Session = Depends(get_session)):
 @router.get("/{proveedor_id}", response_model=ProveedorRead)
 def obtener_proveedor(proveedor_id: int, session: Session = Depends(get_session)):
     
-    proveedor = session.get(Proveedor, proveedor_id)
+    proveedor = obtener_proveedor_service(proveedor_id, session)
     
     if not proveedor:
         raise HTTPException(status_code=404, detail="Proveedor no encontrado")
@@ -68,25 +56,9 @@ def obtener_proveedor(proveedor_id: int, session: Session = Depends(get_session)
 @router.patch("/{proveedor_id}", response_model=ProveedorRead)
 def editar_proveedor(proveedor_id: int, data: ProveedorUpdate, session: Session = Depends(get_session)):
 
-    proveedor_db = session.get(Proveedor, proveedor_id)
-    
+    proveedor_db = editar_proveedor_service(proveedor_id, data, session)
     if not proveedor_db:
         raise HTTPException(status_code=404, detail="Proveedor no encontrado")
-
-    if data.nombre_empresa: 
-        proveedor_db.nombre_empresa = data.nombre_empresa
-    if data.contacto: 
-        proveedor_db.contacto = data.contacto
-    if data.telefono: 
-        proveedor_db.telefono = data.telefono
-    if data.correo: 
-        proveedor_db.correo = data.correo
-    if data.direccion: 
-        proveedor_db.direccion = data.direccion
-
-    session.add(proveedor_db)
-    session.commit()
-    session.refresh(proveedor_db)
     
     return proveedor_db
 
@@ -94,30 +66,20 @@ def editar_proveedor(proveedor_id: int, data: ProveedorUpdate, session: Session 
 @router.delete("/{proveedor_id}")
 def eliminar_proveedor(proveedor_id: int, session: Session = Depends(get_session)):
     
-    proveedor_db = session.get(Proveedor, proveedor_id)
-    
+    proveedor_db = cambiar_estado_proveedor_service(proveedor_id, False, session)
     if not proveedor_db:
         raise HTTPException(status_code=404, detail="Proveedor no encontrado")
-    
-    proveedor_db.estado = False  
-    
-    session.add(proveedor_db)
-    session.commit()
     
     return {"message": f"Proveedor {proveedor_db.nombre_empresa} desactivado"}
 
 # activar proveedor (revertir desactivacion)
 @router.patch("/activar/{proveedor_id}")
 def activar_proveedor(proveedor_id: int, session: Session = Depends(get_session)):
-    proveedor_db = session.get(Proveedor, proveedor_id)
+    proveedor_db = cambiar_estado_proveedor_service(proveedor_id, True, session)
     
     if not proveedor_db:
         raise HTTPException(status_code=404, detail="Proveedor no encontrado")
     
-    proveedor_db.estado = True
-    
-    session.add(proveedor_db)
-    session.commit()
     
     return {"message": f"Proveedor {proveedor_db.nombre_empresa} activado"}
 
@@ -125,11 +87,7 @@ def activar_proveedor(proveedor_id: int, session: Session = Depends(get_session)
 @router.get("/filtro/{nombre}", response_model=List[ProveedorRead])  # Ruta clara
 def buscar_proveedores_por_nombre(nombre: str, session: Session = Depends(get_session)):
     
-    statement = select(Proveedor).where(
-        Proveedor.nombre_empresa.contains(nombre),
-        Proveedor.estado == True)
-    
-    proveedores = session.exec(statement).all()
+    proveedores = buscar_proveedores_service(nombre, session)
     
     if not proveedores:
         raise HTTPException(status_code=404, detail=f"No se encontraron proveedores: {nombre}")
@@ -140,14 +98,11 @@ def buscar_proveedores_por_nombre(nombre: str, session: Session = Depends(get_se
 @router.get("/{proveedor_id}/compras", response_model=List[CompraRead])
 def compras_proveedor(proveedor_id: int, session: Session = Depends(get_session)):
     
-    proveedor = session.get(Proveedor, proveedor_id)
-    
+    proveedor, compras = compras_proveedor_service(proveedor_id, session)
     if not proveedor:
         raise HTTPException(status_code=404, detail="Proveedor no encontrado")
-    
-    compras = proveedor.compras
     
     if not compras:
         raise HTTPException(status_code=404, detail="No se encontraron compras a este proveedor ")
     
-    return 
+    return compras

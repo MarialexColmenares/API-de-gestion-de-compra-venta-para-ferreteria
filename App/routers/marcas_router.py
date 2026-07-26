@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from database.conexion import engine, get_session
-from sqlmodel import Session, select
-from models.modelos import Marca, Producto
+from fastapi import APIRouter, Depends, HTTPException
+from database.conexion import get_session
+from sqlmodel import Session
 from schemas.esquemas import MarcaRead, MarcaCreate, ProductoRead, MarcaUpdate
 from typing import List
+from services.marcas_services import *
 
 
 router = APIRouter(prefix="/marcas", tags=["Marcas"])
@@ -12,21 +12,12 @@ router = APIRouter(prefix="/marcas", tags=["Marcas"])
 @router.post("/", response_model=MarcaRead)
 def crear_marca(data : MarcaCreate,session: Session = Depends(get_session)):
     
-    statement = select(Marca).where(Marca.nombre == data.nombre)
-    existe = session.exec(statement).first()
+    nueva_marca = crear_marca_service(data, session)
     
-    if existe:
+    if nueva_marca == None:
         raise HTTPException(
             status_code=409,
             detail=f" La marca {data.nombre} ya fue registrada")
-    
-    nueva_marca = Marca(
-        nombre=data.nombre,
-        estado=data.estado)
-    
-    session.add(nueva_marca)
-    session.commit()
-    session.refresh(nueva_marca)
     
     return nueva_marca
 
@@ -34,7 +25,7 @@ def crear_marca(data : MarcaCreate,session: Session = Depends(get_session)):
 @router.get("/", response_model=List[MarcaRead])
 def obtener_marcas(session: Session = Depends(get_session)):
     
-    marcas = session.exec(select(Marca)).all()
+    marcas = obtener_marcas_service(session)
     
     if not marcas:
         raise HTTPException(
@@ -47,8 +38,7 @@ def obtener_marcas(session: Session = Depends(get_session)):
 @router.get("/por/{nombre}", response_model=List[MarcaRead])
 def buscar_marcas(nombre: str, session: Session = Depends(get_session)):
     
-    statement = select(Marca).where(Marca.nombre.contains(nombre))
-    marca = session.exec(statement).all()
+    marca = buscar_marcas_service(nombre, session)
     if not marca:
         raise HTTPException(
             status_code=404, 
@@ -59,7 +49,7 @@ def buscar_marcas(nombre: str, session: Session = Depends(get_session)):
 # obtener una marca por ID
 @router.get("/{marca_id}", response_model=MarcaRead)
 def obtener_marca(marca_id: int, session: Session = Depends(get_session)):
-    marca = session.get(Marca, marca_id)
+    marca = obtener_marca_service(marca_id, session)
     
     if not marca:
             raise HTTPException(
@@ -70,87 +60,65 @@ def obtener_marca(marca_id: int, session: Session = Depends(get_session)):
 # actualizacion parcial
 @router.patch("/{marca_id}", response_model=MarcaRead)
 def actualizar_marca(marca_id: int, data: MarcaUpdate, session: Session = Depends(get_session)):
-    marca = session.get(Marca, marca_id)
+    marca = actualizar_marca_service(marca_id, data, session)
     
     if not marca:
         raise HTTPException(
             status_code=404, 
             detail=f"Marca con ID {marca_id} no encontrada")
         
-    if data.nombre is not None:
-        marca.nombre = data.nombre
-    
-    session.commit()
-    session.refresh(marca)
-    
     return marca
 
 #  eliminacion logica de marca
 @router.delete("/{marca_id}")
 def desactivar_marca(marca_id: int, session: Session = Depends(get_session)):
-    marca = session.get(Marca, marca_id)
+    
+    marca = desactivar_marca_service(marca_id, session)
     
     if not marca:
         raise HTTPException(
             status_code= 404, 
             detail="Marca no encontrada")
-        
-    # Si la marca tiene productos, no permitimos la desactivación simple
-    conteo = len(marca.productos)
-    if conteo > 0:
+    
+    # evaluamos si la funcion devolvio un diccionario de error
+    if isinstance(marca, dict) and "error" in marca:
         raise HTTPException(
             status_code=400, 
-            detail=f"No se puede desactivar '{marca.nombre}' porque tiene {conteo} productos vinculados")
-    
-    marca.estado = False
-    
-    session.commit()
+            detail=marca["error"])
 
     return {"message": f"Marca con ID {marca_id} ha sido eliminada (estado cambiado a False)"}
 
 # activacion de marca
 @router.patch("/{marca_id}/activar")
 def activar_marca(marca_id: int, session: Session = Depends(get_session) ):
-    marca = session.get(Marca, marca_id)
+    marca = activar_marca_service(marca_id, session)
     
     if not marca:
         raise HTTPException(
             status_code= 404, 
             detail="Marca no encontrada")
     
-    marca.estado = True
-    
-    session.commit()
-
     return {"message": f"Marca con ID {marca_id} ha sido activada (estado cambiado a True)"}
 
 #  contar productos por marca 
 @router.get("/{marca_id}/estadisticas")
 def obtener_estadisticas_marca(marca_id: int, session: Session = Depends(get_session)):
-    marca = session.get(Marca, marca_id)
-    if not marca:
+    estadisticas = obtener_estadisticas_marca_service(marca_id, session)
+    if not estadisticas:
         raise HTTPException(status_code=404, detail="Marca no encontrada")
-    
-    conteo = len(marca.productos)
-    
-    return {
-        "marca": marca.nombre,
-        "total_productos_asociados": conteo,
-        "estado": "Activa" if marca.estado else "Inactiva"}
+    return estadisticas
 
 
 # 3. NUEVO ENDPOINT MEJORADO (Idea extra)
 @router.get("/{marca_id}/productos", response_model=List[ProductoRead])
 def productos_de_marca(marca_id: int, session: Session = Depends(get_session)):
-    marca = session.get(Marca, marca_id)
-    if not marca:
-        raise HTTPException(status_code=404, detail="Marca no encontrada")
     
-    statement = select(Producto).where(
-        Producto.marca_id == marca_id,
-        Producto.estado == True
-    )
-    productos = session.exec(statement).all()
+    marca = obtener_marca_service(marca_id, session)
+    
+    if not marca:
+        raise HTTPException(status_code=404, detail="no se encontro la marca")
+    
+    productos = productos_de_marca_service(marca_id, session)
     
     if not productos:
         raise HTTPException(status_code=404, detail=f"No existen productos de la marca {marca.nombre}")

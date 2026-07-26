@@ -1,10 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from database.conexion import get_session
 from sqlmodel import Session
-from models.modelos import Categoria
-from schemas.esquemas import CategoriaCreate, CategoriaRead, ProductoRead, CategoriaUpdate
 from typing import List
 
+from schemas.esquemas import CategoriaCreate, CategoriaRead, ProductoRead, CategoriaUpdate
 from services.categoria_services import * 
 
 # prefix y tags para organizar las rutas de categoría en la documentación de FastAPI

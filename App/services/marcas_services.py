@@ -12,6 +12,7 @@ def crear_marca_service(data, session):
 
     # creamos la instancia del modelo marca
     nueva_marca = Marca(nombre=data.nombre, estado=data.estado)
+    
     session.add(nueva_marca)
     session.commit()
     session.refresh(nueva_marca)

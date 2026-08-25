@@ -2,6 +2,25 @@ from typing import Optional, List
 from pydantic import BaseModel
 from datetime import datetime
 
+
+class UsuarioBase(BaseModel):
+    username: str 
+    contrasena: str 
+    rol: str
+    
+class UsuarioCreate(UsuarioBase):
+    pass
+
+class UsuarioRead(UsuarioBase):
+    id: int
+    class Config:
+        from_attributes = True
+        
+class UsuarioUpdate(BaseModel):
+    username: Optional[str] 
+    contrasena: Optional[str] 
+    rol: Optional[str]
+    
 # --- ESQUEMAS DE CATEGORÍA ---
 class CategoriaBase(BaseModel):
     nombre: str

@@ -3,6 +3,12 @@ from datetime import datetime
 from sqlmodel import Field, Relationship, SQLModel
 
 
+class Usuario(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    username: str = Field(unique=True)
+    contrasena: str 
+    rol: str
+
 class Categoria(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     nombre: str = Field(index=True)

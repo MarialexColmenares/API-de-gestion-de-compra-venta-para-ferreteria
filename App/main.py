@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from sqlmodel import SQLModel
-from database.conexion import create_db_and_tables, engine
+from database.conexion import create_db_and_tables
 from models.modelos import Categoria, Marca, Almacen, Producto, Proveedor, Cliente
 from routers.usuarios_router import router as usuarios_router
 from routers.categoria_router import router as categoria_router
@@ -11,6 +11,7 @@ from routers.proveedores_router import router as proveedores_router
 from routers.clientes_router import router as clientes_router
 from routers.ventas_routers import router as ventas_router
 from routers.compras_router import router as compras_router
+
 
 
 app = FastAPI(

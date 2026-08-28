@@ -1,26 +1,21 @@
 from typing import Optional, List
 from pydantic import BaseModel
 from datetime import datetime
-
+from sqlmodel import Field
 
 class UsuarioBase(BaseModel):
-    username: str 
-    contrasena: str 
-    rol: str
-    
+    username: str = Field (min_length=3, max_length=50, description="Nombre de usuario")
+    rol: str = Field(default="por definir", description="Rol asignado al usuario")
+
 class UsuarioCreate(UsuarioBase):
-    pass
+    contrasena: str = Field (min_length=8, description="La contraseña debe tener al menos 8 caracteres")
 
 class UsuarioRead(UsuarioBase):
     id: int
+
     class Config:
-        from_attributes = True
-        
-class UsuarioUpdate(BaseModel):
-    username: Optional[str] 
-    contrasena: Optional[str] 
-    rol: Optional[str]
-    
+        from_attributes = True  
+
 # --- ESQUEMAS DE CATEGORÍA ---
 class CategoriaBase(BaseModel):
     nombre: str

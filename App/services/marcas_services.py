@@ -19,11 +19,14 @@ def crear_marca_service(data, session):
 
     return nueva_marca
 
-
+#  este aun no lo pruebo 
 def obtener_marcas_service(session):
     # seleccionamos todas las marcas de la db
     return session.exec(select(Marca)).all()
 
+def obtener_marcas_activas_service(session):
+    
+    return session.exec(select(Marca).where(Marca.estado == True)).all()
 
 def buscar_marcas_service(nombre, session):
     # buscamos marcas cuyo nombre coincida parcialmente
@@ -61,6 +64,7 @@ def desactivar_marca_service(marca_id, session):
     marca_db.estado = False
     session.add(marca_db)
     session.commit()
+    
     return marca_db
 
 

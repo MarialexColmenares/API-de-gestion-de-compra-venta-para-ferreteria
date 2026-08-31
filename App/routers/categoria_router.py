@@ -5,13 +5,14 @@ from typing import List
 
 from schemas.esquemas import CategoriaCreate, CategoriaRead, ProductoRead, CategoriaUpdate
 from services.categoria_services import * 
+from services.autenticacion import get_current_user, require_roles
 
 # prefix y tags para organizar las rutas de categoría en la documentación de FastAPI
 router = APIRouter(prefix="/categorias", tags=["Categorías"])
 
 #  crea una categoria nueva
 @router.post("/", response_model=CategoriaRead)
-def crear_categoria(data: CategoriaCreate, session: Session = Depends(get_session)):
+def crear_categoria(data: CategoriaCreate, session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin", "gestor_stock"))):
     
     nueva_categoria = crear_categoria_service(data, session)
     
@@ -23,7 +24,7 @@ def crear_categoria(data: CategoriaCreate, session: Session = Depends(get_sessio
 
 #  todas las categorias
 @router.get("/", response_model=List[CategoriaRead])
-def obtener_categorias(session: Session = Depends(get_session)):
+def obtener_categorias(session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin"))):
     
     # llamamos a la funcion para obtener todas las categorias
     categorias = obtener_categorias_service(session)
@@ -38,7 +39,7 @@ def obtener_categorias(session: Session = Depends(get_session)):
 
 # mostrar categorias activas 
 @router.get("/activas", response_model=List[CategoriaRead])
-def categorias_activas(session: Session = Depends(get_session)):
+def categorias_activas(session: Session = Depends(get_session), current_user: dict = Depends(get_current_user)):
     
     categorias = categorias_activas_service(session)
     
@@ -50,7 +51,7 @@ def categorias_activas(session: Session = Depends(get_session)):
 
 # obtenemos una categoria por su id
 @router.get("/{categoria_id}", response_model=CategoriaRead)
-def obtener_categoria(categoria_id: int, session: Session = Depends(get_session)):
+def obtener_categoria(categoria_id: int, session: Session = Depends(get_session), current_user: dict = Depends(get_current_user)):
     
     categoria = obtener_categoria_service(categoria_id, session)
     
@@ -64,7 +65,7 @@ def obtener_categoria(categoria_id: int, session: Session = Depends(get_session)
 
 #  eliminacion logica de categoria
 @router.delete("/{categoria_id}")
-def desactivar_categoria(categoria_id: int, session: Session = Depends(get_session)):
+def desactivar_categoria(categoria_id: int, session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin", "gestor_stock"))):
     
     categoria = desactivar_categoria_service(categoria_id, session)
     
@@ -77,7 +78,7 @@ def desactivar_categoria(categoria_id: int, session: Session = Depends(get_sessi
 
 #  reactivar categoria
 @router.patch("/{categoria_id}/activar")
-def activar_categoria(categoria_id: int, session: Session = Depends(get_session)):
+def activar_categoria(categoria_id: int, session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin"))):
     
     categoria = activar_categoria_service(categoria_id, session)
     
@@ -88,7 +89,7 @@ def activar_categoria(categoria_id: int, session: Session = Depends(get_session)
 
 # actualizacion parcial
 @router.patch("/{categoria_id}", response_model=CategoriaRead)
-def editar_categoria(categoria_id: int, data: CategoriaUpdate, session: Session = Depends(get_session)):
+def editar_categoria(categoria_id: int, data: CategoriaUpdate, session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin", "gestor_stock"))):
     
     categoria = editar_categoria_service(categoria_id, data, session)
     
@@ -101,7 +102,7 @@ def editar_categoria(categoria_id: int, data: CategoriaUpdate, session: Session 
 
 # productos por categoria 
 @router.get("/{nombre_categoria}/productos", response_model=List[ProductoRead])
-def buscar_productos_por_categoria(categoria_id: int, session: Session = Depends(get_session)):
+def buscar_productos_por_categoria(categoria_id: int, session: Session = Depends(get_session), current_user: dict = Depends(get_current_user)):
     
     # usamos la funcion de obtener categoria para obtener la categoria atraves de su id 
     categoria = obtener_categoria_service(categoria_id, session)

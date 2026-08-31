@@ -12,6 +12,7 @@ class UsuarioCreate(UsuarioBase):
 
 class UsuarioRead(UsuarioBase):
     id: int
+    estado: bool
 
     class Config:
         from_attributes = True  

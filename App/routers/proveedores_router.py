@@ -4,12 +4,13 @@ from sqlmodel import Session
 from schemas.esquemas import ProveedorCreate, ProveedorRead, ProveedorUpdate, CompraRead
 from typing import List
 from services.proveedores_services import *
+from services.autenticacion import require_roles
 
 router = APIRouter(prefix="/proveedores", tags=["Proveedores"])
 
 # crear proveedor
 @router.post("/", response_model=ProveedorRead)
-def crear_proveedor(data: ProveedorCreate, session: Session = Depends(get_session)):
+def crear_proveedor(data: ProveedorCreate, session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin"))):
     
     nuevo_proveedor = crear_proveedor_service(data, session)
     if not nuevo_proveedor:
@@ -19,7 +20,7 @@ def crear_proveedor(data: ProveedorCreate, session: Session = Depends(get_sessio
 
 #  proveedores activos 
 @router.get("/activos", response_model=List[ProveedorRead])
-def proveedores_activos(session: Session = Depends(get_session)):
+def proveedores_activos(session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin", "gestor_stock"))):
     
     proveedores = proveedores_activos_service(session)
     
@@ -32,7 +33,7 @@ def proveedores_activos(session: Session = Depends(get_session)):
 
 # obtener todos los proveedores
 @router.get("/", response_model=List[ProveedorRead])
-def listar_proveedores(session: Session = Depends(get_session)):
+def listar_proveedores(session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin", "gestor_stock"))):
     
     proveedores = obtener_proveedores_service(session)
     
@@ -43,7 +44,7 @@ def listar_proveedores(session: Session = Depends(get_session)):
 
 # obtener por id
 @router.get("/{proveedor_id}", response_model=ProveedorRead)
-def obtener_proveedor(proveedor_id: int, session: Session = Depends(get_session)):
+def obtener_proveedor(proveedor_id: int, session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin", "gestor_stock"))):
     
     proveedor = obtener_proveedor_service(proveedor_id, session)
     
@@ -54,7 +55,7 @@ def obtener_proveedor(proveedor_id: int, session: Session = Depends(get_session)
 
 # actualizacion parcial
 @router.patch("/{proveedor_id}", response_model=ProveedorRead)
-def editar_proveedor(proveedor_id: int, data: ProveedorUpdate, session: Session = Depends(get_session)):
+def editar_proveedor(proveedor_id: int, data: ProveedorUpdate, session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin"))):
 
     proveedor_db = editar_proveedor_service(proveedor_id, data, session)
     if not proveedor_db:
@@ -64,7 +65,7 @@ def editar_proveedor(proveedor_id: int, data: ProveedorUpdate, session: Session 
 
 # eliminacion logica (desactivar proveedor)
 @router.delete("/{proveedor_id}")
-def eliminar_proveedor(proveedor_id: int, session: Session = Depends(get_session)):
+def eliminar_proveedor(proveedor_id: int, session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin", "gestor_stock"))):
     
     proveedor_db = cambiar_estado_proveedor_service(proveedor_id, False, session)
     if not proveedor_db:
@@ -74,7 +75,7 @@ def eliminar_proveedor(proveedor_id: int, session: Session = Depends(get_session
 
 # activar proveedor (revertir desactivacion)
 @router.patch("/activar/{proveedor_id}")
-def activar_proveedor(proveedor_id: int, session: Session = Depends(get_session)):
+def activar_proveedor(proveedor_id: int, session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin"))):
     proveedor_db = cambiar_estado_proveedor_service(proveedor_id, True, session)
     
     if not proveedor_db:
@@ -85,7 +86,7 @@ def activar_proveedor(proveedor_id: int, session: Session = Depends(get_session)
 
 # obtener por nombre
 @router.get("/filtro/{nombre}", response_model=List[ProveedorRead])  # Ruta clara
-def buscar_proveedores_por_nombre(nombre: str, session: Session = Depends(get_session)):
+def buscar_proveedores_por_nombre(nombre: str, session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin", "gestor_stock"))):
     
     proveedores = buscar_proveedores_service(nombre, session)
     
@@ -94,9 +95,9 @@ def buscar_proveedores_por_nombre(nombre: str, session: Session = Depends(get_se
     
     return proveedores
 
-# compras d¿con un proveedor
+# compras con un proveedor
 @router.get("/{proveedor_id}/compras", response_model=List[CompraRead])
-def compras_proveedor(proveedor_id: int, session: Session = Depends(get_session)):
+def compras_proveedor(proveedor_id: int, session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin", "gestor_stock"))):
     
     proveedor, compras = compras_proveedor_service(proveedor_id, session)
     if not proveedor:

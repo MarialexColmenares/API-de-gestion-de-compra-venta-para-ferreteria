@@ -1,22 +1,11 @@
 from sqlmodel import select
 from models.modelos import Usuario
-from passlib.context import CryptContext
-
-pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
-
-def hashear_contrasena(contrasena: str):
-    return pwd_context.hash(contrasena)
-
-def verificar_contrasena(contrasena_ingresada: str, contrasena_hasheada: str):
-    return pwd_context.verify(contrasena_ingresada, contrasena_hasheada)
-
+from services.autenticacion import authenticate_user, hashear_contrasena, crear_token
 
 def crear_usuario_service(data, session):
     
     if session.exec(select(Usuario).where(Usuario.username == data.username)).first():
         return {"error": "Error: Ya existe un usuario con ese username"}
-    
-
     
     contrasena_hash = hashear_contrasena(data.contrasena)
 
@@ -34,19 +23,38 @@ def crear_usuario_service(data, session):
 
 def inico_session_service(usuario, contrasena, session):
     
-    usuario_encontrado = session.exec(select(Usuario).where(Usuario.username == usuario)).first()
+    user = authenticate_user(usuario, contrasena, session)
     
-    if not usuario_encontrado:
-        return {"error": "Error: no existe un usuario con ese username "}
-    
-    contrasena_correcta = verificar_contrasena(contrasena, usuario_encontrado.contrasena)
-    
-    if not contrasena_correcta:
-        return {"error": "Error: la contrasena es incorrecta"}
+    if user == None:
+        return user
 
-    return {"autorizado":"inicio de session exitoso"}
+    access_token = crear_token(
+        data={
+            "sub": user.username,
+            "role": user.rol,
+            "id": user.id
+        }
+    )
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer"
+    }
 
 def obtener_usuarios_service(session):
 
     return session.exec(select(Usuario)).all()
+
+def desactivar_usuario_service(id_user, session):
+    
+    user_db = session.get(Usuario, id_user)
+    if not user_db:
+        return None
+
+    user_db.estado = False
+    
+    session.add(user_db)
+    session.commit()
+    
+    return user_db
 

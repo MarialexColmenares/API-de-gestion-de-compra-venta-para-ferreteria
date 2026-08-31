@@ -6,12 +6,13 @@ from typing import List
 from schemas.esquemas import AlmacenCreate, AlmacenRead, AlmacenUpdate, ProductoRead, AsignarProductoAlmacen
 from database.conexion import get_session
 from services.almacen_services import *
+from services.autenticacion import require_roles, get_current_user
 
 router = APIRouter(prefix="/almacenes", tags=["Almacenes"])
 
 # crear un nuevo almacen
 @router.post("/", response_model=AlmacenRead)
-def crear_almacen(data: AlmacenCreate, session: Session = Depends(get_session)):
+def crear_almacen(data: AlmacenCreate, session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin", "gestor_stock"))):
     
     nuevo_almacen = crear_almacen_service(data, session)
     
@@ -25,7 +26,7 @@ def crear_almacen(data: AlmacenCreate, session: Session = Depends(get_session)):
 
 # obtener todos los almacenes
 @router.get("/", response_model=List[AlmacenRead])
-def obtener_almacenes(session: Session = Depends(get_session)):
+def obtener_almacenes(session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin"))):
     
     almacenes = obtener_almacenes_service(session)
     
@@ -40,7 +41,7 @@ def obtener_almacenes(session: Session = Depends(get_session)):
 
 # obtener solo los almacenes activos (estado=True)
 @router.get("/activos", response_model=List[AlmacenRead])
-def almacenes_activas(session: Session = Depends(get_session)):
+def almacenes_activas(session: Session = Depends(get_session), current_user: dict = Depends(get_current_user)):
     
     almacenes = almacenes_activas_service(session)
     
@@ -58,7 +59,8 @@ def buscar_almacenes(
     nombre: Optional[str] = None,
     ubicacion: Optional[str] = None,
     estado: Optional[bool] = None,
-    session: Session = Depends(get_session)):
+    session: Session = Depends(get_session),
+    current_user: dict = Depends(get_current_user)):
     
     # evaluamos que el usuario hay enviado por lo menos un filtro 
     if not nombre and not ubicacion and estado is None:
@@ -79,7 +81,7 @@ def buscar_almacenes(
 
 # obtener un almacen por su ID
 @router.get("/{almacen_id}", response_model=AlmacenRead)
-def obtener_almacen(almacen_id: int, session: Session = Depends(get_session)):
+def obtener_almacen(almacen_id: int, session: Session = Depends(get_session), current_user: dict = Depends(get_current_user)):
     
     almacen = obtener_almacen_service(almacen_id, session)
     
@@ -92,7 +94,7 @@ def obtener_almacen(almacen_id: int, session: Session = Depends(get_session)):
 
 # eliminar un almacen (cambio de estado a False)
 @router.delete("/{almacen_id}")
-def desactivar_almacen(almacen_id: int, session: Session = Depends(get_session)):
+def desactivar_almacen(almacen_id: int, session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin","gestor_stock"))):
     
     almacen = desactivar_almacen_service(almacen_id, session)
     
@@ -107,7 +109,7 @@ def desactivar_almacen(almacen_id: int, session: Session = Depends(get_session))
 
 # activar almacen 
 @router.patch("/activar")
-def activar_almacen(almacen_id: int, session: Session = Depends(get_session)):
+def activar_almacen(almacen_id: int, session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin"))):
     
     almacen = activar_almacen_service(almacen_id, session)
     
@@ -120,7 +122,7 @@ def activar_almacen(almacen_id: int, session: Session = Depends(get_session)):
 
 # actualizacion parcial de almacen
 @router.patch("/{almacen_id}")
-def actualizar_parcial_almacen(almacen_id:int, data:AlmacenUpdate, session:Session = Depends(get_session)):
+def actualizar_parcial_almacen(almacen_id:int, data:AlmacenUpdate, session:Session = Depends(get_session), current_user: dict = Depends(require_roles("admin", "gestor_stock"))):
     
     almacen = actualizar_parcial_almacen_service(almacen_id, data, session)
     
@@ -133,7 +135,7 @@ def actualizar_parcial_almacen(almacen_id:int, data:AlmacenUpdate, session:Sessi
 
 
 @router.post("/asignar-producto")
-def asignar_producto_a_almacen(data: AsignarProductoAlmacen, session: Session = Depends(get_session)):
+def asignar_producto_a_almacen(data: AsignarProductoAlmacen, session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin", "gestor_stock"))):
     
     if data.cantidad < 0:
         raise HTTPException(status_code=400, detail="agrega al menos un producto al almacen ")
@@ -148,7 +150,7 @@ def asignar_producto_a_almacen(data: AsignarProductoAlmacen, session: Session = 
 
 # inventario de un almacen específico
 @router.get("/{almacen_id}/inventario", response_model=List[ProductoRead])
-def ver_inventario_almacen(almacen_id: int, session: Session = Depends(get_session)):
+def ver_inventario_almacen(almacen_id: int, session: Session = Depends(get_session), current_user: dict = Depends(get_current_user)):
     
     # utilizamos la funcion de obtener almacen para seleccionar el almacen con el id que envia el usuario
     almacen = obtener_almacen_service(almacen_id, session)

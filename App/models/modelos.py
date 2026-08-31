@@ -8,6 +8,7 @@ class Usuario(SQLModel, table=True):
     username: str = Field(unique=True)
     contrasena: str 
     rol: str
+    estado: bool = Field(default=True)
 
 class Categoria(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)

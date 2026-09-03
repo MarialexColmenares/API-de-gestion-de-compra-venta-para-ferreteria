@@ -1,18 +1,19 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from database.conexion import get_session
 from sqlmodel import Session, select
-from models.modelos import Venta, DetalleVenta, Producto, Cliente, ProductoAlmacen
+from models.modelos import Venta, Cliente
 from schemas.esquemas import VentaCreate, VentaRead
 from typing import List
 from datetime import date 
 from sqlalchemy import func
 from services.ventas_services import *
+from services.autenticacion import require_roles, get_current_user
 
 router = APIRouter(prefix="/ventas", tags=["Ventas"])
 
 # crear venta con validación de cliente y stock 
 @router.post("/", response_model=VentaRead, status_code=status.HTTP_201_CREATED)
-def crear_venta(data: VentaCreate, session: Session = Depends(get_session)):
+def crear_venta(data: VentaCreate, session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin", "vendedor"))):
     resultado = crear_venta_service(data, session)
     if isinstance(resultado, dict):
         raise HTTPException(status_code=400, detail=resultado["error"])
@@ -20,7 +21,7 @@ def crear_venta(data: VentaCreate, session: Session = Depends(get_session)):
 
 # obtener todas las ventas
 @router.get("/", response_model=List[VentaRead])
-def listar_ventas(session: Session = Depends(get_session)):
+def listar_ventas(session: Session = Depends(get_session), current_user: dict = Depends(get_current_user)):
     
     ventas = obtener_ventas_service(session)
     
@@ -28,7 +29,7 @@ def listar_ventas(session: Session = Depends(get_session)):
 
 # obtener venta por id
 @router.get("/ventas/{venta_id}")
-def obtener_factura(venta_id: int, session: Session = Depends(get_session)):
+def obtener_factura(venta_id: int, session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin", "vendedor"))):
     # 1. Buscamos la venta
     venta = obtener_venta_service(venta_id, session)
     
@@ -57,7 +58,7 @@ def obtener_factura(venta_id: int, session: Session = Depends(get_session)):
     
 # actulizacion parcial
 @router.patch("/{venta_id}", response_model=VentaRead)
-def actualizar_venta(venta_id: int, data: VentaCreate, session: Session = Depends(get_session)):
+def actualizar_venta(venta_id: int, data: VentaCreate, session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin", "vendedor"))):
     venta = actualizar_venta_service(venta_id, data, session)
     if not venta:
         raise HTTPException(status_code=404, detail="Venta no encontrada")
@@ -65,7 +66,7 @@ def actualizar_venta(venta_id: int, data: VentaCreate, session: Session = Depend
  
 
 @router.get("/cliente/{cliente_id}", response_model=List[VentaRead])
-def obtener_ventas_por_cliente(cliente_id: int, session: Session = Depends(get_session)):
+def obtener_ventas_por_cliente(cliente_id: int, session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin", "vendedor"))):
     # 1. Verificamos existencia del cliente
     cliente = session.get(Cliente, cliente_id)
     if not cliente:
@@ -90,7 +91,8 @@ def obtener_ventas_por_cliente(cliente_id: int, session: Session = Depends(get_s
 def obtener_ventas_por_rango_fechas(
     inicio: date, 
     fin: date, 
-    session: Session = Depends(get_session)):
+    session: Session = Depends(get_session),
+    current_user: dict = Depends(require_roles("admin", "vendedor"))):
     
     statement = select(Venta).where(
         Venta.fecha >= inicio,
@@ -104,30 +106,14 @@ def obtener_ventas_por_rango_fechas(
     return ventas
 
 @router.patch("/{venta_id}/cancelar")
-def cancelar_venta(venta_id: int, session: Session = Depends(get_session)):
+def cancelar_venta(venta_id: int, session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin"))):
     venta = cancelar_venta_service(venta_id, session)
     if not venta:
         raise HTTPException(status_code=400, detail="Venta no cancelable")
     return {"message": "Venta cancelada, stock devuelto"}
-    """
-    
-    venta = session.get(Venta, venta_id)
-    
-    if not venta or venta.estado != "Completada":
-        raise HTTPException(status_code=400, detail="Venta no cancelable")
-    
-    for detalle in venta.detalles:
-        producto = session.get(Producto, detalle.producto_id)
-        producto.stock_total += detalle.cantidad
-    
-    venta.estado = "Cancelada"
-    session.commit()
-    return {"message": "Venta cancelada, stock devuelto"}
-    """
-
 
 @router.get("/reporte/diario")
-def reporte_ventas(fecha: date, session: Session = Depends(get_session)):
+def reporte_ventas(fecha: date, session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin", "vendedor"))):
     # Filtra ventas que ocurrieron en un día específico
     statement = select(Venta).where(func.date(Venta.fecha) == fecha)
     ventas = session.exec(statement).all()

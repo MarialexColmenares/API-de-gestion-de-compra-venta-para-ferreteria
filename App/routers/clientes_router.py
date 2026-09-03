@@ -4,12 +4,13 @@ from sqlmodel import Session
 from schemas.esquemas import ClienteCreate, ClienteRead, ClienteUpdate, VentaRead
 from typing import List
 from services.clientes_services import *
+from services.autenticacion import require_roles, get_current_user
 
 router = APIRouter(prefix="/clientes", tags=["Clientes"])
 
 # listar clientes
 @router.get("/", response_model=List[ClienteRead])
-def obtener_clientes(session: Session = Depends(get_session)):
+def obtener_clientes(session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin"))):
     
     # usamos la funcion service para traer todos los registros de clientes
     clientes = obtener_clientes_service(session)
@@ -22,7 +23,7 @@ def obtener_clientes(session: Session = Depends(get_session)):
 
 # obtener clientes activos
 @router.get("/activos", response_model=List[ClienteRead])
-def obtener_clientes_activos(session: Session = Depends(get_session)):
+def obtener_clientes_activos(session: Session = Depends(get_session), current_user: dict = Depends(get_current_user)):
     
     
     clientes_activos = obtener_clientes_activos_service(session)
@@ -34,7 +35,7 @@ def obtener_clientes_activos(session: Session = Depends(get_session)):
 
 #  obtener cliente por id
 @router.get("/{id_cliente}" , response_model=ClienteRead)
-def obtener_cliente_id(id_cliente: int, session: Session = Depends(get_session)):
+def obtener_cliente_id(id_cliente: int, session: Session = Depends(get_session), current_user: dict = Depends(get_current_user)):
     
     cliente = obtener_cliente_id_service(id_cliente, session)
     
@@ -45,7 +46,7 @@ def obtener_cliente_id(id_cliente: int, session: Session = Depends(get_session))
 
 # crear cliente
 @router.post("/", response_model=ClienteRead)
-def crear_cliente(data: ClienteCreate, session: Session = Depends(get_session)):
+def crear_cliente(data: ClienteCreate, session: Session = Depends(get_session), current_user: dict = Depends(get_current_user)):
     
     nuevo_cliente = crear_cliente_service(data, session)
     
@@ -56,7 +57,7 @@ def crear_cliente(data: ClienteCreate, session: Session = Depends(get_session)):
 
 # actualizacion parcial 
 @router.patch("/{cliente_id}", response_model=ClienteRead)
-def editar_cliente(id_cliente: int,data: ClienteUpdate,session: Session = Depends(get_session)):
+def editar_cliente(id_cliente: int,data: ClienteUpdate,session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin"))):
     
     #  usamos la funcion service obtener cliente para obtener al cliente por su id 
     cliente_db = obtener_cliente_id_service(id_cliente, session)
@@ -71,7 +72,7 @@ def editar_cliente(id_cliente: int,data: ClienteUpdate,session: Session = Depend
 
 # eliminacion logica (desactivar cliente)
 @router.delete("/{id_cliente}")
-def desactivar_cliente(id_cliente: int, session: Session = Depends(get_session)):
+def desactivar_cliente(id_cliente: int, session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin"))):
     
     cliente_db = obtener_cliente_id_service(id_cliente, session)
     
@@ -85,7 +86,7 @@ def desactivar_cliente(id_cliente: int, session: Session = Depends(get_session))
 
 # acitvar cliente (revertir desactivacion)
 @router.patch("/{id_cliente}/activar")
-def activar_cliente(id_cliente: int, session: Session = Depends(get_session)):
+def activar_cliente(id_cliente: int, session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin"))):
     
     cliente_db = obtener_cliente_id_service(id_cliente, session)
     
@@ -98,7 +99,7 @@ def activar_cliente(id_cliente: int, session: Session = Depends(get_session)):
 
 # obtener cliente por cedula
 @router.get("/cedula/{num_cedula}", response_model=ClienteRead)
-def obtener_por_cedula(num_cedula: str, session: Session = Depends(get_session)):
+def obtener_por_cedula(num_cedula: str, session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin", "vendedor"))):
     
     cliente = obtener_por_cedula_service(num_cedula,session)
     
@@ -109,7 +110,7 @@ def obtener_por_cedula(num_cedula: str, session: Session = Depends(get_session))
 
 # obtener ventas relacionadas a un cliente 
 @router.get("/{id_cliente}/ventas", response_model=List[VentaRead])
-def obtener_ventas_cliente(id_cliente: int, session: Session = Depends(get_session)):
+def obtener_ventas_cliente(id_cliente: int, session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin", "vendedor"))):
     
     cliente = obtener_cliente_id_service(id_cliente, session)
     
@@ -127,7 +128,7 @@ def obtener_ventas_cliente(id_cliente: int, session: Session = Depends(get_sessi
 
 # estadisticas cliente
 @router.get("/{id_cliente}/estadisticas")
-def estadisticas_cliente(id_cliente: int, session: Session = Depends(get_session)):
+def estadisticas_cliente(id_cliente: int, session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin", "vendedor"))):
     
     cliente = obtener_cliente_id_service(id_cliente, session)
     if not cliente:

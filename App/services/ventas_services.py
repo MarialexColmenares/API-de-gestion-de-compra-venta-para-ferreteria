@@ -3,7 +3,6 @@ from sqlalchemy import func
 from sqlmodel import select
 from models.modelos import Venta, DetalleVenta, Producto, Cliente, ProductoAlmacen
 
-
 def crear_venta_service(data, session):
     cliente = session.get(Cliente, data.cliente_id)
     if not cliente:

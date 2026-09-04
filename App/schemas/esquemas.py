@@ -1,6 +1,6 @@
 from typing import Optional, List
-from pydantic import BaseModel
-from datetime import datetime
+from pydantic import BaseModel, ConfigDict
+from datetime import date
 from sqlmodel import Field
 
 class UsuarioBase(BaseModel):
@@ -13,9 +13,9 @@ class UsuarioCreate(UsuarioBase):
 class UsuarioRead(UsuarioBase):
     id: int
     estado: bool
-
-    class Config:
-        from_attributes = True  
+    
+    # ahora usamos model_config para que al hacer consultas, nos devuelva los datos de la base de datos, en lugar de un objeto ORM, antes usabamos Config, pero ahora es model_config ya que nos generaba advertencias en la consola al hacer pruebas con pytest
+    model_config = ConfigDict(from_attributes=True)
 
 # --- ESQUEMAS DE CATEGORÍA ---
 class CategoriaBase(BaseModel):
@@ -28,8 +28,7 @@ class CategoriaCreate(CategoriaBase):
 
 class CategoriaRead(CategoriaBase):
     id: int
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
         
 class CategoriaUpdate(BaseModel):
     nombre: Optional[str] = None
@@ -45,8 +44,7 @@ class MarcaCreate(MarcaBase):
 
 class MarcaRead(MarcaBase):
     id: int
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
         
 class MarcaUpdate(BaseModel):
     nombre: Optional[str] = None
@@ -70,8 +68,7 @@ class ProductoRead(ProductoBase):
     id: int
     stock_total: int 
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ProductoUpdate(BaseModel):
     codigo: str
@@ -114,8 +111,7 @@ class ProveedorCreate(ProveedorBase):
 
 class ProveedorRead(ProveedorBase):
     id: int
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
         
 class ProveedorUpdate(BaseModel):
     nombre_empresa: Optional [str] = None
@@ -140,8 +136,7 @@ class ClienteCreate(ClienteBase):
 
 class ClienteRead(ClienteBase):
     id: int
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ClienteUpdate(BaseModel):
     nombre: Optional[str] = None
@@ -168,7 +163,7 @@ class DetalleVentaRead(DetalleVentaBase):
     
 class VentaBase(BaseModel):
     cliente_id: int
-    fecha: datetime = datetime.now()
+    fecha: date
     total: float
     tipo_pago: str
 
@@ -177,7 +172,7 @@ class VentaCreate(VentaBase):
     detalles: List[DetalleVentaCreate] 
     
 class VentaUpdate(BaseModel):
-    fecha: Optional[datetime] = None
+    fecha: Optional[date] = None
     total: Optional[float] = None
     tipo_pago: Optional[str] = None
     
@@ -201,8 +196,7 @@ class AlmacenRead(AlmacenBase):
     # Se usa para las respuestas GET
     id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class AlmacenUpdate(BaseModel):
     # Se usa para el PATCH, todos los campos son opcionales
@@ -222,7 +216,7 @@ class CompraCreate(BaseModel):
     proveedor_id: int
     almacen_id: int  
     monto_total: float
-    fecha: Optional[datetime] = None
+    fecha: Optional[date] = None
     estado: str = "Recibido"
     detalles: List[DetalleCompraCreate]
 
@@ -230,26 +224,25 @@ class DetalleCompraRead(DetalleCompraCreate):
     id: int
     compra_id: int
     subtotal: float
-    class Config:
-        from_attributes = True
+    
+    model_config = ConfigDict(from_attributes=True)
 
 class CompraRead(BaseModel):
     id: int
     proveedor_id: int
     monto_total: float
-    fecha: datetime
+    fecha: date
     estado: str # Para que al consultar la compra también lo muestre
     detalles: List[DetalleCompraRead]
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
         
 class CompraUpdate(BaseModel):
     proveedor_id: Optional[int] = None
     almacen_id: Optional[int] = None
     monto_total: Optional[float] = None
-    fecha: Optional[datetime] = None
+    fecha: Optional[date] = None
     estado: Optional[str] = None # Ejemplo: "Pendiente", "Recibida", "Cancelada"
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from sqlmodel import SQLModel
+from fastapi.concurrency import asynccontextmanager
 from database.conexion import create_db_and_tables
 from models.modelos import Categoria, Marca, Almacen, Producto, Proveedor, Cliente
 from routers.usuarios_router import router as usuarios_router
@@ -12,20 +12,22 @@ from routers.clientes_router import router as clientes_router
 from routers.ventas_routers import router as ventas_router
 from routers.compras_router import router as compras_router
 
+# cambiamos a lifespan porque onevent, nos causaba una advertencia en la consola, al hacer pruebas con pytest
+@asynccontextmanager
+async def lifespan(app: FastAPI):
 
+    create_db_and_tables()
+    yield
 
 app = FastAPI(
     title="Centro de Repuestos y Ferretería",
-    version="1.5.0"
+    version="1.5.0",
+    lifespan=lifespan
 )
 
 @app.get("/")
 async def root():
     return {"Bienvenidos": "Sistema de Centro de Repuestos y Ferretería"}
-
-@app.on_event("startup")
-def on_startup():
-   create_db_and_tables()
 
 app.include_router(usuarios_router)
 app.include_router(categoria_router)

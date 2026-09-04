@@ -28,6 +28,10 @@ def inico_session(form_data: OAuth2PasswordRequestForm = Depends(),  session: Se
     
     return inicio 
 
+@router.get("/perfil")
+def ver_perfil(current_user: dict = Depends(get_current_user)):
+    return {"usuario": current_user}
+
 @router.get("/", response_model=list[UsuarioRead])
 def obtener_usuarios( session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin"))):
     return obtener_usuarios_service(session)

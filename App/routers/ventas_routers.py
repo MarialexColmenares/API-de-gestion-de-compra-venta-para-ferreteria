@@ -67,17 +67,16 @@ def actualizar_venta(venta_id: int, data: VentaCreate, session: Session = Depend
 
 @router.get("/cliente/{cliente_id}", response_model=List[VentaRead])
 def obtener_ventas_por_cliente(cliente_id: int, session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin", "vendedor"))):
+    
     # 1. Verificamos existencia del cliente
-    cliente = session.get(Cliente, cliente_id)
+    cliente = obtener_cliente_id_service(cliente_id, session)
     if not cliente:
         raise HTTPException(
             status_code=404, 
             detail="Cliente no encontrado")
     
-    # 2. Consultamos sus ventas
-    # El lazy="subquery" que pusimos antes se encarga de los detalles automáticamente
-    statement = select(Venta).where(Venta.cliente_id == cliente_id)
-    ventas = session.exec(statement).all()
+    
+    ventas = obtener_ventas_por_cliente_service(cliente_id, session)
     
     if not ventas: 
         raise HTTPException(
@@ -94,11 +93,8 @@ def obtener_ventas_por_rango_fechas(
     session: Session = Depends(get_session),
     current_user: dict = Depends(require_roles("admin", "vendedor"))):
     
-    statement = select(Venta).where(
-        Venta.fecha >= inicio,
-        Venta.fecha <= fin)
-    
-    ventas = session.exec(statement).all()
+    ventas = obtener_ventas_por_fecha_service(inicio, fin, session)
+
     
     if not ventas: 
         raise HTTPException( status_code=404,detail=f"no hay ventas entre esas fechas" )
@@ -107,20 +103,17 @@ def obtener_ventas_por_rango_fechas(
 
 @router.patch("/{venta_id}/cancelar")
 def cancelar_venta(venta_id: int, session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin"))):
+    
     venta = cancelar_venta_service(venta_id, session)
+    
     if not venta:
         raise HTTPException(status_code=400, detail="Venta no cancelable")
+    
     return {"message": "Venta cancelada, stock devuelto"}
 
 @router.get("/reporte/diario")
 def reporte_ventas(fecha: date, session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin", "vendedor"))):
-    # Filtra ventas que ocurrieron en un día específico
-    statement = select(Venta).where(func.date(Venta.fecha) == fecha)
-    ventas = session.exec(statement).all()
-    total_dia = sum(v.total for v in ventas)
-    
-    return {
-        "fecha": fecha,
-        "cantidad_ventas": len(ventas),
-        "ingreso_total": total_dia
-    }
+
+    reporte = reporte_ventas_service(fecha, session)
+
+    return reporte

@@ -2,11 +2,13 @@ from datetime import date
 from sqlalchemy import func
 from sqlmodel import select
 from models.modelos import Venta, DetalleVenta, Producto, Cliente, ProductoAlmacen
+from services.clientes_services import obtener_cliente_id_service
 
 def crear_venta_service(data, session):
     cliente = session.get(Cliente, data.cliente_id)
     if not cliente:
         return {"error": "Cliente no encontrado"}
+    
     for item in data.detalles:
         producto = session.get(Producto, item.producto_id)
         if not producto or producto.stock_total < item.cantidad:
@@ -42,7 +44,6 @@ def obtener_ventas_service(session):
 def obtener_venta_service(venta_id, session):
     return session.get(Venta, venta_id)
 
-
 def actualizar_venta_service(venta_id, data, session):
     venta = session.get(Venta, venta_id)
     if not venta:
@@ -55,10 +56,8 @@ def actualizar_venta_service(venta_id, data, session):
 
 
 def obtener_ventas_por_cliente_service(cliente_id, session):
-    cliente = session.get(Cliente, cliente_id)
-    if not cliente:
-        return None, None
-    return cliente, session.exec(select(Venta).where(Venta.cliente_id == cliente_id)).all()
+    
+    return session.exec(select(Venta).where(Venta.cliente_id == cliente_id)).all()
 
 
 def obtener_ventas_por_fecha_service(inicio, fin, session):
@@ -67,18 +66,33 @@ def obtener_ventas_por_fecha_service(inicio, fin, session):
 
 def cancelar_venta_service(venta_id, session):
     venta = session.get(Venta, venta_id)
+    
     if not venta or venta.estado != "Completada":
         return None
+    
     for detalle in venta.detalles:
+        
         producto = session.get(Producto, detalle.producto_id)
+        
         if producto:
+            
             producto.stock_total += detalle.cantidad
             session.add(producto)
+            
     venta.estado = "Cancelada"
+    
     session.commit()
     return venta
 
 
 def reporte_ventas_service(fecha, session):
+    
     ventas = session.exec(select(Venta).where(func.date(Venta.fecha) == fecha)).all()
-    return {"fecha": fecha, "cantidad_ventas": len(ventas), "ingreso_total": sum(venta.total for venta in ventas)}
+    
+    return {
+        "fecha": fecha,
+        "cantidad_ventas": len(ventas),
+        "ingreso_total": sum(venta.total for venta in ventas)
+        }
+
+

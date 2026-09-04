@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from datetime import datetime, timedelta, timezone 
 
 import jwt 
-from jwt.exceptions import InvalidTokenError
+from jwt.exceptions import InvalidTokenError, ExpiredSignatureError
 
 from sqlmodel import select
 from models.modelos import Usuario
@@ -22,7 +22,7 @@ load_dotenv()
 # traemos los valores de codificacion de tokens desde el .env 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
+ACCESS_TOKEN_EXPIRE_MINUTES = int(30)
 
 # para el hasheo de contraseñas 
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
@@ -33,12 +33,6 @@ def hashear_contrasena(contrasena: str):
 def verificar_contrasena(contrasena_ingresada: str, contrasena_hasheada: str):
     return pwd_context.verify(contrasena_ingresada, contrasena_hasheada)
 
-
-
-# Aquí van las funciones:
-# - create_access_token()
-# - get_current_user()
-# - require_roles()
 
 #  se encarga de validar que el usuario exista verifica su username y su password en fake_users_db 
 def authenticate_user(username: str, password: str, session ):
@@ -73,20 +67,23 @@ def crear_token(data: dict): # recibe un diccionario con la informacion que se q
 
 def get_current_user(token: str = Depends(oauth2_scheme)):
     try:
-        #  decodifica el token para saber quien es el usuario y sus datos
+        # Decodifica el token usando la clave secreta y el algoritmo
         payload = jwt.decode(
             token,
             SECRET_KEY,
             algorithms=[ALGORITHM]
-        ) # para decodificarlo se necesita la cable secreta y el algoritmo igual para codificarlo 
+        )
         
         username = payload.get("sub")
         role = payload.get("role")
-        id = payload.get("id") # aqui tengo un error no deberia ser stund id sino id y ya del usuario 
+        id = payload.get("id")
         
-        #  evalúa si falta el role o es username, nose puede autenticar un usuario sin estos datos 
+        # Evalúa si faltan datos requeridos en el payload
         if username is None or role is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, 
+                detail="Token inválido"
+            )
         
         return {
             "username": username,
@@ -94,8 +91,18 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
             "id": id
         }
     
+    except ExpiredSignatureError:
+        # 1. Captura cuando el token sobrepasa el tiempo límite (exp)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, 
+            detail="El token ha expirado"
+        )
     except InvalidTokenError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No se pudo validar el token")
+        # 2. Captura firma alterada, datos corruptos o formato incorrecto
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, 
+            detail="No se pudo validar el token"
+        )
     
     
 def require_roles(*allowed_roles: str):

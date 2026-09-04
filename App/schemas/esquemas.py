@@ -5,7 +5,7 @@ from sqlmodel import Field
 
 class UsuarioBase(BaseModel):
     username: str = Field (min_length=3, max_length=50, description="Nombre de usuario")
-    rol: str = Field(default="por definir", description="Rol asignado al usuario")
+    rol: str = Field(default="admin", description="Rol asignado al usuario")
 
 class UsuarioCreate(UsuarioBase):
     contrasena: str = Field (min_length=8, description="La contraseña debe tener al menos 8 caracteres")
@@ -146,7 +146,7 @@ class ClienteUpdate(BaseModel):
     correo: Optional[str] = None
     direccion: Optional[str] = None
 
-# --- ESQUEMAS DE VENTAS (Lo que faltaba para el Router de Ventas) ---
+# --- ESQUEMAS DE VENTAS ---
 
 class DetalleVentaBase(BaseModel):
     producto_id: int
@@ -189,11 +189,9 @@ class AlmacenBase(BaseModel):
     estado: bool = True
 
 class AlmacenCreate(AlmacenBase):
-    # Se usa para el POST /crear
     pass
 
 class AlmacenRead(AlmacenBase):
-    # Se usa para las respuestas GET
     id: int
 
     model_config = ConfigDict(from_attributes=True)
@@ -209,8 +207,6 @@ class DetalleCompraCreate(BaseModel):
     producto_id: int
     cantidad: int
     precio_compra: float
-
-# --- ESQUEMAS DE COMPRAS ---
 
 class CompraCreate(BaseModel):
     proveedor_id: int
@@ -236,8 +232,7 @@ class CompraRead(BaseModel):
     detalles: List[DetalleCompraRead]
     
     model_config = ConfigDict(from_attributes=True)
-
-        
+ 
 class CompraUpdate(BaseModel):
     proveedor_id: Optional[int] = None
     almacen_id: Optional[int] = None

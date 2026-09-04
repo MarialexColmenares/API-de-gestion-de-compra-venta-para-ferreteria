@@ -17,6 +17,7 @@ Este proyecto es un sistema de backend desarrollado con **FastAPI** y **PostgreS
 - **Base de Datos:** PostgreSQL [PostgreSQL](https://www.postgresql.org/)
 - **ORM:** SQLModel (basado en SQLAlchemy y Pydantic) [SQLModel](https://sqlmodel.tiangolo.com/)
 - **Servidor:** Uvicorn [Uvicorn](https://uvicorn.dev/)
+- **pytest:** para pruebas utomatizadas
 
 ## 📂 Estructura del Proyecto
 
@@ -26,6 +27,7 @@ Ferreteria/
 ├── models/          # Modelos de tablas (SQLModel)
 ├── routers/         # Endpoints de la API (almacén, compras, ventas, etc.)
 ├── schemas/         # Esquemas de validación de datos
+├── test/            # pruebas automatizadas con pytest
 ├── main.py          # Punto de entrada de la aplicación
 └── .gitignore       # Configuración de archivos excluidos
 ```

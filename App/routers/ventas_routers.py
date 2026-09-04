@@ -14,9 +14,12 @@ router = APIRouter(prefix="/ventas", tags=["Ventas"])
 # crear venta con validación de cliente y stock 
 @router.post("/", response_model=VentaRead, status_code=status.HTTP_201_CREATED)
 def crear_venta(data: VentaCreate, session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin", "vendedor"))):
+    
     resultado = crear_venta_service(data, session)
+    
     if isinstance(resultado, dict):
         raise HTTPException(status_code=400, detail=resultado["error"])
+    
     return resultado
 
 # obtener todas las ventas
@@ -30,13 +33,13 @@ def listar_ventas(session: Session = Depends(get_session), current_user: dict = 
 # obtener venta por id
 @router.get("/ventas/{venta_id}")
 def obtener_factura(venta_id: int, session: Session = Depends(get_session), current_user: dict = Depends(require_roles("admin", "vendedor"))):
-    # 1. Buscamos la venta
+    # Buscamos la venta
     venta = obtener_venta_service(venta_id, session)
     
     if not venta:
         raise HTTPException(status_code=404, detail="Venta no encontrada")
     
-    # 2. TRUCO MANUAL: Forzamos a Python a leer los detalles ANTES de responder.
+    # Forzamos a Python a leer los detalles ANTES de responder.
     # Simplemente al acceder a 'venta.detalles', SQLModel hace la consulta.
     detalles_reales = []
     for item in venta.detalles:
@@ -47,7 +50,7 @@ def obtener_factura(venta_id: int, session: Session = Depends(get_session), curr
             "subtotal": item.subtotal
         })
     
-    # 3. Construimos la respuesta con los datos que ya extrajimos
+    # Construimos la respuesta con los datos que ya extrajimos
     return {
         "id_factura": venta.id,
         "fecha": venta.fecha,

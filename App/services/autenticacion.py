@@ -33,7 +33,6 @@ def hashear_contrasena(contrasena: str):
 def verificar_contrasena(contrasena_ingresada: str, contrasena_hasheada: str):
     return pwd_context.verify(contrasena_ingresada, contrasena_hasheada)
 
-
 #  se encarga de validar que el usuario exista verifica su username y su password en fake_users_db 
 def authenticate_user(username: str, password: str, session ):
 
@@ -46,7 +45,6 @@ def authenticate_user(username: str, password: str, session ):
         return None
     
     return user 
-
 
 # crea el token 
 def crear_token(data: dict): # recibe un diccionario con la informacion que se quiere integrar en el token 
@@ -103,7 +101,6 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
             status_code=status.HTTP_401_UNAUTHORIZED, 
             detail="No se pudo validar el token"
         )
-    
     
 def require_roles(*allowed_roles: str):
     

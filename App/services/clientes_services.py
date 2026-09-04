@@ -46,7 +46,6 @@ def crear_cliente_service(data, session):
     
     return nuevo_cliente 
         
-
 def editar_cliente_service(id_cliente, data, session):
     
     #  ya habiendo evaluado en el router que el cliente existe lo seleccionamos aqui para actualizarlo
@@ -72,7 +71,6 @@ def editar_cliente_service(id_cliente, data, session):
     
     return cliente_db
     
-
 def desactivar_cliente_service(id_cliente, session):
     
     cliente_db = session.get(Cliente, id_cliente )
@@ -85,8 +83,6 @@ def desactivar_cliente_service(id_cliente, session):
     
     return cliente_db
      
-
-
 def activar_cliente_service(id_cliente, session):
     
     cliente_db = session.get(Cliente, id_cliente)

@@ -1,7 +1,6 @@
 from sqlmodel import select
 from models.modelos import Marca
 
-
 def crear_marca_service(data, session):
     # seleccionamos marcas con el mismo nombre
     marca_existente = session.exec(select(Marca).where(Marca.nombre == data.nombre)).first()
@@ -19,7 +18,6 @@ def crear_marca_service(data, session):
 
     return nueva_marca
 
-#  este aun no lo pruebo 
 def obtener_marcas_service(session):
     # seleccionamos todas las marcas de la db
     return session.exec(select(Marca)).all()
@@ -32,11 +30,9 @@ def buscar_marcas_service(nombre, session):
     # buscamos marcas cuyo nombre coincida parcialmente
     return session.exec(select(Marca).where(Marca.nombre.contains(nombre))).all()
 
-
 def obtener_marca_service(marca_id, session):
     # seleccionamos la marca a partir de su id
     return session.get(Marca, marca_id)
-
 
 def actualizar_marca_service(marca_id, data, session):
     marca_db = session.get(Marca, marca_id)
@@ -49,8 +45,8 @@ def actualizar_marca_service(marca_id, data, session):
     session.add(marca_db)
     session.commit()
     session.refresh(marca_db)
+    
     return marca_db
-
 
 def desactivar_marca_service(marca_id, session):
     marca_db = session.get(Marca, marca_id)
@@ -67,7 +63,6 @@ def desactivar_marca_service(marca_id, session):
     
     return marca_db
 
-
 def activar_marca_service(marca_id, session):
     marca_db = session.get(Marca, marca_id)
     if not marca_db:
@@ -77,7 +72,6 @@ def activar_marca_service(marca_id, session):
     session.add(marca_db)
     session.commit()
     return marca_db
-
 
 def obtener_estadisticas_marca_service(marca_id, session):
     marca_db = session.get(Marca, marca_id)
@@ -90,7 +84,6 @@ def obtener_estadisticas_marca_service(marca_id, session):
         "total_productos_asociados": len(marca_db.productos),
         "estado": "Activa" if marca_db.estado else "Inactiva"
     }
-
 
 def productos_de_marca_service(marca_id, session):
     

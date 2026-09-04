@@ -12,7 +12,7 @@ from routers.clientes_router import router as clientes_router
 from routers.ventas_routers import router as ventas_router
 from routers.compras_router import router as compras_router
 
-# cambiamos a lifespan porque onevent, nos causaba una advertencia en la consola, al hacer pruebas con pytest
+# cambiamos a lifespan porque on event, nos causaba una advertencia en la consola, al hacer pruebas con pytest
 @asynccontextmanager
 async def lifespan(app: FastAPI):
 

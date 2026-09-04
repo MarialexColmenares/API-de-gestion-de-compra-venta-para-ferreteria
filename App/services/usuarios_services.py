@@ -57,4 +57,3 @@ def desactivar_usuario_service(id_user, session):
     session.commit()
     
     return user_db
-

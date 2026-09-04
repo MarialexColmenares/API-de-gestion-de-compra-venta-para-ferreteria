@@ -97,7 +97,6 @@ def activar_almacen_service(almacen_id, session):
     
     return almacen
 
-
 def actualizar_parcial_almacen_service(almacen_id, data, session):
     
     almacen_db = session.get(Almacen, almacen_id)

@@ -3,6 +3,7 @@ from main import app
 
 client = TestClient(app)
 
+#  comprueba que la api haya iniciado correctamente y que la ruta raíz devuelva el mensaje de bienvenida esperado
 def test_root():
     response = client.get("/")
     

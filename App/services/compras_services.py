@@ -2,7 +2,6 @@ from datetime import datetime
 from sqlmodel import select
 from models.modelos import Compra, DetalleCompra, Producto, Almacen, ProductoAlmacen, Proveedor
 
-
 def crear_compra_service(data, session):
     
     # validamos proveedor y almacen antes de crear la compra
@@ -29,14 +28,11 @@ def crear_compra_service(data, session):
     session.refresh(nueva_compra)
     return nueva_compra
 
-
 def obtener_compras_service(session):
     return session.exec(select(Compra)).all()
 
-
 def obtener_compra_service(compra_id, session):
     return session.get(Compra, compra_id)
-
 
 def recibir_compra_service(compra_id, session):
     compra = session.get(Compra, compra_id)
@@ -66,7 +62,6 @@ def recibir_compra_service(compra_id, session):
     
     return compra
 
-
 def actualizar_compra_service(compra_id, data, session):
     
     compra = session.get(Compra, compra_id)
@@ -81,7 +76,6 @@ def actualizar_compra_service(compra_id, data, session):
     session.refresh(compra)
     
     return compra
-
 
 def cancelar_compra_service(compra_id, session):
     
@@ -98,7 +92,6 @@ def cancelar_compra_service(compra_id, session):
     
     return compra
 
-
 def obtener_compras_proveedor_service(proveedor_id, session):
     
     proveedor = session.get(Proveedor, proveedor_id)
@@ -109,7 +102,6 @@ def obtener_compras_proveedor_service(proveedor_id, session):
     compras = session.exec(statement).all()
     
     return compras
-
 
 def reporte_compras_service(fecha_inicio, fecha_fin, session):
 
